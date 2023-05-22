@@ -65,6 +65,8 @@ class MainActivity : AppCompatActivity() {
         binding.ibBrush.setOnClickListener { showBrushSizeChooserDialog() }
 
         binding.ibGallery.setOnClickListener {requestStoragePermission() }
+        binding.ibUndo.setOnClickListener { binding.drawingView.onClickUndo() }
+        binding.ibRedo.setOnClickListener { binding.drawingView.onClickRedo() }
     }
 
     private fun showBrushSizeChooserDialog() {
