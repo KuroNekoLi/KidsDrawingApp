@@ -4,6 +4,9 @@ import android.Manifest
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
@@ -134,4 +137,36 @@ class MainActivity : AppCompatActivity() {
             ))
         }
     }
+    /**
+     * 這個函數的目的是從給定的View中創建一個Bitmap。
+     * @param view 是想要轉換為Bitmap的視圖對象。
+     * @return 返回創建的Bitmap。
+     */
+    private fun getBitmapFromView(view:View) : Bitmap{
+        // 創建一個Bitmap對象，該對象的寬度和高度與給定的視圖相同，並使用ARGB_8888配置來存儲圖像數據。
+        // ARGB_8888是一種高質量的位圖配置，它將每個顏色像素存儲為4個字節。
+        val returnedBitmap = Bitmap.createBitmap(view.width,view.height,Bitmap.Config.ARGB_8888)
+
+        // 創建一個新的Canvas並給它一個Bitmap來繪製。
+        // 以後在此Canvas上的所有繪製操作都將在該Bitmap上顯示。
+        val canvas = Canvas(returnedBitmap)
+
+        // 從給定的視圖中獲取背景Drawable。
+        // 如果該視圖有背景，則將其繪製到我們的canvas（和Bitmap）上。
+        // 如果沒有，則將canvas背景塗為白色。
+        val bgDrawable = view.background
+        if (bgDrawable != null){
+            bgDrawable.draw(canvas)
+        }else{
+            canvas.drawColor(Color.WHITE)
+        }
+
+        // 在給定的canvas上繪製視圖。
+        // 這將包含視圖的所有內容，如文字、圖片等。
+        view.draw(canvas)
+
+        // 返回我們創建的Bitmap。
+        return returnedBitmap
+    }
+
 }
