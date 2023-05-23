@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.media.MediaScannerConnection
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
@@ -214,6 +215,7 @@ class MainActivity : AppCompatActivity() {
                         cancelProgressDialog()
                         if (result != ""){
                             Toast.makeText(this@MainActivity,"檔案儲存成功: $result",Toast.LENGTH_SHORT).show()
+                            shareImage(result)
                         }else{
                             Toast.makeText(this@MainActivity,"檔案儲存失敗: $result",Toast.LENGTH_SHORT).show()
 
@@ -238,6 +240,23 @@ class MainActivity : AppCompatActivity() {
         if (customProgressDialog!=null){
             customProgressDialog?.dismiss()
             customProgressDialog = null
+        }
+    }
+
+    private fun shareImage(result: String){
+        // 啟動媒體掃描器掃描指定的文件
+        MediaScannerConnection.scanFile(this, arrayOf(result),null){
+            path, uri ->
+            // 創建一個新的 Intent 用於分享
+            val shareIntent = Intent()
+            // 設置 Intent 的動作為 ACTION_SEND，表示這是一個分享動作
+            shareIntent.action = Intent.ACTION_SEND
+            // 添加文件的 URI 到 Intent 的額外數據中
+            shareIntent.putExtra(Intent.EXTRA_STREAM,uri)
+            // 設置分享內容的類型為 PNG 格式的圖像
+            shareIntent.type = "image/png"
+            // 創建一個 Intent 選擇器，並啟動該 Intent 選擇器
+            startActivity(Intent.createChooser(shareIntent,"Share"))
         }
     }
 }
