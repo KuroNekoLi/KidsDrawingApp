@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -17,13 +18,22 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.text.isDigitsOnly
 import androidx.core.view.get
+import androidx.lifecycle.lifecycleScope
 import com.example.kidsdrawingapp.databinding.ActivityMainBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var mImageButtonCurrentPaint: ImageButton? = null
+    var customProgressDialog: Dialog? = null
 
     //compileSdkVersion 必須31以上
     private val requestPermission: ActivityResultLauncher<Array<String>> =
@@ -70,6 +80,14 @@ class MainActivity : AppCompatActivity() {
         binding.ibGallery.setOnClickListener {requestStoragePermission() }
         binding.ibUndo.setOnClickListener { binding.drawingView.onClickUndo() }
         binding.ibRedo.setOnClickListener { binding.drawingView.onClickRedo() }
+        binding.ibSave.setOnClickListener {
+            if (isReadStorageAllowed()){
+                showProgressDialog()
+                lifecycleScope.launch {
+                    saveBitmapFile(getBitmapFromView(binding.flDrawingViewContainer))
+                }
+            }
+        }
     }
 
     private fun showBrushSizeChooserDialog() {
@@ -125,6 +143,10 @@ class MainActivity : AppCompatActivity() {
         builder.create().show()
     }
 
+    private fun isReadStorageAllowed(): Boolean{
+        val result = ContextCompat.checkSelfPermission(this,Manifest.permission.READ_EXTERNAL_STORAGE)
+        return result == PackageManager.PERMISSION_GRANTED
+    }
     private fun requestStoragePermission(){
         if (ActivityCompat.shouldShowRequestPermissionRationale(
                 this,Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -132,8 +154,8 @@ class MainActivity : AppCompatActivity() {
             showRationaleDialog("Kids Drawing App","該App需要您的外部存取權限")
         }else{
             requestPermission.launch(arrayOf(
-                Manifest.permission.READ_EXTERNAL_STORAGE
-                //TODO - Add writing external storage permission
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
             ))
         }
     }
@@ -169,4 +191,53 @@ class MainActivity : AppCompatActivity() {
         return returnedBitmap
     }
 
+    private suspend fun saveBitmapFile(mBitmap: Bitmap?): String {
+        var result = ""
+        withContext(Dispatchers.IO) {
+            if (mBitmap != null) {
+                try {
+                    val bytes = ByteArrayOutputStream()
+                    mBitmap.compress(Bitmap.CompressFormat.PNG, 90, bytes)
+
+                    val f = File(
+                        externalCacheDir?.absoluteFile.toString()
+                                + File.separator + "KidDrawingApp_" + System.currentTimeMillis() / 1000 + ".png"
+                    )
+
+                    val fo = FileOutputStream(f)
+                    fo.write(bytes.toByteArray())
+                    fo.close()
+
+                    result = f.absolutePath
+
+                    runOnUiThread {
+                        cancelProgressDialog()
+                        if (result != ""){
+                            Toast.makeText(this@MainActivity,"檔案儲存成功: $result",Toast.LENGTH_SHORT).show()
+                        }else{
+                            Toast.makeText(this@MainActivity,"檔案儲存失敗: $result",Toast.LENGTH_SHORT).show()
+
+                        }
+                    }
+                }catch (e:Exception){
+                    result = ""
+                    e.printStackTrace()
+                }
+            }
+        }
+        return result
+    }
+
+    private fun showProgressDialog(){
+        customProgressDialog = Dialog(this)
+        customProgressDialog?.setContentView(R.layout.dialog_custom_progress)
+        customProgressDialog?.show()
+    }
+
+    private fun cancelProgressDialog(){
+        if (customProgressDialog!=null){
+            customProgressDialog?.dismiss()
+            customProgressDialog = null
+        }
+    }
 }
